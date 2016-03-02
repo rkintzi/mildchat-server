@@ -3,10 +3,12 @@ package main
 import (
 	"golang.org/x/net/websocket"
 	"io"
+	"log"
 	"net/http"
 )
 
 func echoHandler(ws *websocket.Conn) {
+	log.Println("Connected")
 	io.Copy(ws, ws)
 }
 
