@@ -54,7 +54,8 @@ func (c *client) Close() {
 
 func (c *client) Listen() {
 	go c.Receive()
-label:
+
+loop:
 	for {
 		select {
 		case m := <-c.messages:
@@ -62,7 +63,7 @@ label:
 		case <-c.exit:
 			c.ws.Close()
 			log.Println("Closed connection")
-			break label
+			break loop
 		}
 	}
 }

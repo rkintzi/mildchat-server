@@ -34,13 +34,12 @@ func (s *server) connectHandler(ws *websocket.Conn) {
 
 	c.Listen()
 
+	log.Println("Client disconnected")
 	for i, cl := range s.clients {
 		if cl == c {
 			s.clients = append(s.clients[:i], s.clients[i+1:]...)
 		}
 	}
-
-	log.Println("Client disconnected")
 }
 
 func (s *server) Listen() {
