@@ -1,53 +1,55 @@
 package chat
 
 import (
-	"code.google.com/p/go.net/websocket"
+	"golang.org/x/net/websocket"
 	"log"
 	"net/http"
 )
 
-func NewServer(path string) *server {
+func NewServer(path, addr string) *server {
 	return &server{
 		path,
-		make([]*Client, 0),
-		make([]*Message, 0),
-		make(chan *Client),
-		make(chan *Client),
-		make(chan *Message),
+		addr,
+		make([]*client, 0),
 	}
 }
 
 type server struct {
-	path         string
-	clients      []*Client
-	messages     []*Message
-	addClient    chan *Client
-	removeClient chan *Client
-	sendMessage  chan *Message
+	path    string
+	addr    string
+	clients []*client
 }
 
-func (self *server) AddClient(client *Client) {
-	log.Println("Adding client")
-	self.addClient <- client
-}
-
-func (self *server) RemoveClient(client *Client) {
-	log.Println("Removing client")
-	self.removeClient <- client
-}
-
-func (self *server) SendMessage(message *Message) {
+func (s *server) BroadcastMessage(m *Message) {
 	log.Println("Sending message")
-	self.sendMessage <- message
+	for _, c := range s.clients {
+		c.SendMessage(m)
+	}
 }
 
-func (self *server) connectHandler(ws *websocket.Conn) {
-	client := NewClient(ws, self)
-	self.AddClient(client)
-	client.Listen()
-	defer ws.Close()
+func (s *server) connectHandler(ws *websocket.Conn) {
+	log.Println("Client connected")
+	c := NewClient(ws, s)
+	s.clients = append(s.clients, c)
+
+	c.Listen()
+
+	for i, cl := range s.clients {
+		if cl == c {
+			s.clients = append(s.clients[:i], s.clients[i+1:]...)
+		}
+	}
+
+	log.Println("Client disconnected")
 }
 
-func (self *server) Listen() {
+func (s *server) Listen() {
 	log.Println("Starting server")
+
+	http.Handle(s.path, websocket.Handler(s.connectHandler))
+
+	err := http.ListenAndServe(s.addr, nil)
+	if err != nil {
+		log.Panic("Server error: " + err.Error())
+	}
 }
