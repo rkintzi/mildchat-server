@@ -6,6 +6,7 @@ import (
 	"log"
 )
 
+// NewClient is client constructor
 func NewClient(ws *websocket.Conn, server *server) *client {
 	return &client{
 		ws,
@@ -22,6 +23,8 @@ type client struct {
 	exit     chan int
 }
 
+// SendMessage tries to send message to the channel. If it fails then
+// client is disconnected.
 func (c *client) SendMessage(m *Message) {
 	select {
 	case c.messages <- m:
@@ -30,6 +33,7 @@ func (c *client) SendMessage(m *Message) {
 	}
 }
 
+// Receive reads websocket in the loop.
 func (c *client) Receive() {
 	log.Println("Receiving")
 	for {
@@ -48,10 +52,12 @@ func (c *client) Receive() {
 	}
 }
 
+// Close sends info to closing channel
 func (c *client) Close() {
 	c.exit <- 1
 }
 
+// Listen runs write and receive listening.
 func (c *client) Listen() {
 	go c.Receive()
 
