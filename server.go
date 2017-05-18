@@ -9,18 +9,22 @@ import (
 )
 
 type server struct {
-	path    string
-	addr    string
-	clients []*client
-	reg     chan *client
+	path     string
+	addr     string
+	clients  []*client
+	reg      chan *client
+	clinames map[*client]string
+	nicks    map[string]bool
 }
 
 func NewServer(path, addr string) *server {
 	return &server{
-		path:    path,
-		addr:    addr,
-		clients: make([]*client, 0, 10),
-		reg:     make(chan *client),
+		path:     path,
+		addr:     addr,
+		clients:  make([]*client, 0, 10),
+		reg:      make(chan *client),
+		clinames: make(map[*client]string),
+		nicks:    make(map[string]bool),
 	}
 }
 
@@ -56,14 +60,47 @@ func (s *server) handleClients() {
 				log.Println("Message from: %v (in shutdown mode - ignored)\n", s.clients[chosen-1].Id())
 				continue
 			}
-			message := value.Interface().(*ChatMessage)
-			s.broadcast(message, s.clients[chosen-1])
+			message := value.Interface().(Message)
+			s.handleMessage(message, s.clients[chosen-1])
 		}
 	}
 }
-
-func (s *server) broadcast(m *ChatMessage, sender *client) {
-	log.Printf("Broadcast message from: %v\n", sender.Id())
+func (s *server) handleMessage(m Message, sender *client) {
+	switch msg := m.(type) {
+	case *ChatMessage:
+		msg.Author = s.clinames[sender]
+		if msg.Author == "" {
+			log.Printf("Ignoring client %v: no nick name", sender.Id())
+			errMsg := ErrorMessage{
+				ErrorCode: ErrNoNickSet,
+				Message:   "Set your nick name first",
+			}
+			sender.Send(&errMsg)
+			break
+		}
+		log.Printf("Broadcast chat message from: %v\n", sender.Id())
+		s.broadcast(msg, sender)
+	case *NickMessage:
+		if msg.NewName == "" || s.nicks[msg.NewName] {
+			log.Printf("Ignoring client %v: invalid nick or nick already taken: %s", sender.Id(), msg.NewName)
+			errMsg := ErrorMessage{
+				ErrorCode: ErrInvalidNick,
+				Message:   "Invalid nick name or nick name already taken",
+			}
+			sender.Send(&errMsg)
+			break
+		}
+		msg.OldName = s.clinames[sender]
+		if msg.OldName != "" {
+			s.nicks[msg.OldName] = false
+		}
+		s.nicks[msg.NewName] = true
+		s.clinames[sender] = msg.NewName
+		log.Printf("Broadcast nick message from: %v\n", sender.Id())
+		s.broadcast(msg, sender)
+	}
+}
+func (s *server) broadcast(m Message, sender *client) {
 	for _, c := range s.clients {
 		if c == nil {
 			continue
