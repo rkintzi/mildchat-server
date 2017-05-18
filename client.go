@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 
@@ -8,69 +9,44 @@ import (
 )
 
 // NewClient is client constructor
-func NewClient(ws *websocket.Conn, server *server) *client {
+func NewClient(ws *websocket.Conn) *client {
 	return &client{
 		ws,
-		server,
-		make(chan *Message, 100),
-		make(chan int),
+		make(chan *ChatMessage, 100),
 	}
 }
 
 type client struct {
-	ws       *websocket.Conn
-	server   *server
-	messages chan *Message
-	exit     chan int
+	con      *websocket.Conn
+	messages chan *ChatMessage
 }
 
-// SendMessage tries to send message to the channel. If it fails then
-// client is disconnected.
-func (c *client) SendMessage(m *Message) {
-	select {
-	case c.messages <- m:
-	default:
-		c.Close()
-	}
+func (c *client) Id() string {
+	return fmt.Sprintf("%v", c.con.Request().RemoteAddr)
+}
+
+func (c *client) Send(m *ChatMessage) error {
+	return websocket.JSON.Send(c.con, m)
 }
 
 // Receive reads websocket in the loop.
 func (c *client) Receive() {
-	log.Println("Receiving")
+	log.Printf("Start receiving from: %v\n", c.Id())
 	for {
-		m := &Message{}
-		err := websocket.JSON.Receive(c.ws, m)
-		if err == nil {
-			c.server.BroadcastMessage(m)
-		} else if err == io.EOF {
-			c.Close()
+		m := &ChatMessage{}
+		err := websocket.JSON.Receive(c.con, m)
+		if err == io.EOF {
+			close(c.messages)
 			break
-		} else {
-			log.Println(err)
-			c.Close()
+		} else if err != nil {
+			log.Printf("Error from client %v: %v", c.Id(), err)
+			close(c.messages)
 			break
 		}
+		c.messages <- m
 	}
 }
 
-// Close sends info to closing channel
 func (c *client) Close() {
-	c.exit <- 1
-}
-
-// Listen runs write and receive listening.
-func (c *client) Listen() {
-	go c.Receive()
-
-loop:
-	for {
-		select {
-		case m := <-c.messages:
-			websocket.JSON.Send(c.ws, m)
-		case <-c.exit:
-			c.ws.Close()
-			log.Println("Closed connection")
-			break loop
-		}
-	}
+	c.con.Close()
 }
