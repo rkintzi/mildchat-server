@@ -1,9 +1,10 @@
-package chat
+package main
 
 import (
-	"golang.org/x/net/websocket"
 	"log"
 	"net/http"
+
+	"golang.org/x/net/websocket"
 )
 
 func NewServer(path, addr string) *server {

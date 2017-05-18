@@ -1,9 +1,10 @@
-package chat
+package main
 
 import (
-	"golang.org/x/net/websocket"
 	"io"
 	"log"
+
+	"golang.org/x/net/websocket"
 )
 
 // NewClient is client constructor
