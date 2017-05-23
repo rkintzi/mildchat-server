@@ -43,12 +43,17 @@ func (s *server) handleClients() {
 				s.stop()
 			} else {
 				cli := s.clients[chosen-1]
-				if s.clinames[cli] != "" {
-					s.nicks[s.clinames[cli]] = false
+				name := s.clinames[cli]
+				if name != "" {
+					s.nicks[name] = false
 					s.clinames[cli] = ""
 				}
 				log.Printf("Client disconnected: %v\n", s.clients[chosen-1].Id())
 				s.clients[chosen-1] = nil
+				if name != "" {
+					msg := NickMessage{OldName: name}
+					s.broadcast(&msg, cli)
+				}
 			}
 			// TODO clean s.clients and cases lists every n-time we are here
 			continue
