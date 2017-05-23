@@ -42,6 +42,11 @@ func (s *server) handleClients() {
 				// @@rk: should we add timeout to not wait for clients forever?
 				s.stop()
 			} else {
+				cli := s.clients[chosen-1]
+				if s.clinames[cli] != "" {
+					s.nicks[s.clinames[cli]] = false
+					s.clinames[cli] = ""
+				}
 				log.Printf("Client disconnected: %v\n", s.clients[chosen-1].Id())
 				s.clients[chosen-1] = nil
 			}

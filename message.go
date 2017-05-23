@@ -35,6 +35,8 @@ func (t *MessageType) UnmarshalJSON(bs []byte) error {
 	mt := string(bs)
 	if mt == "\"ChatMessage\"" {
 		*t = ChatMessageType
+	} else if mt == "\"NickMessage\"" {
+		*t = NickMessageType
 	} else {
 		*t = UnknownMessageType
 	}
