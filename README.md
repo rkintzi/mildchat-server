@@ -5,7 +5,7 @@ Mildchat Server
 
 Really simple chat server written in Golang. It was prepared (together with client application in Angular4) for JS Has A Power - an training event organized by STX Next - polish python softwarehouse.
 
-Slides (in Polish) are available here: https://docs.google.com/presentation/d/1hcgrPBSZ2TgFCIB1WgakIUwexMmkpGk7Oz8V8OvfmEg/edit?usp=sharing
+Slides (in Polish) are available here:  https://goo.gl/F9kUwD
 
 
 Server can be installed (assuming Golang is downloaded and installed) simply by:
